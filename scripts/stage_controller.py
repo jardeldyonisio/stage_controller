@@ -3,6 +3,7 @@
 import rospy 
 import math
 import rospy
+import random
 
 from nav_msgs.msg import *
 from sensor_msgs.msg import *
@@ -28,14 +29,22 @@ def obstacle_avoidance():
 
     if (len(laser.ranges) > 0):
         if (min(laser.ranges) > obstacle_threshold):
-            #velocity.linear.x = 0.25
-            #velocity.angular.z = random.uniform(-0.25, 0.25)
+            # velocity.linear.x = 0.25
+            # velocity.angular.z = random.uniform(-0.25, 0.25)
             min_range_idx = laser.ranges.index(min(laser.ranges))
+            if (min_range_idx == 0):
+                velocity.linear.x = 0.0
+                velocity.angular.z = 0.25
+                pub.publish(velocity)
+            print(min_range_idx)
+            print("---")
             angle_to_obstacle = laser.angle_min + min_range_idx * laser.angle_increment
 
             # Calcula as velocidades lineares e angulares desejadas
-            velocity.linear.x = max_linear_velocity * (1 - min(laser.ranges) / obstacle_threshold)
-            velocity.angular.z = max_angular_velocity * (angle_to_obstacle / abs(angle_to_obstacle))
+            velocity.linear.x = -(max_linear_velocity * (1 - min(laser.ranges) / obstacle_threshold))
+            velocity.angular.z = -(max_angular_velocity * (angle_to_obstacle / abs(angle_to_obstacle)))
+            print(velocity.linear.x)
+            print("---")
         else:
             velocity.linear.x = 0.0
             velocity.angular.z = 0.25
@@ -53,7 +62,7 @@ if __name__ == "__main__":
 
     target_x = 1.0
     target_y = 2.0
-    min_distance = 0.1
+    offset_dist = 1.0
 
     pub = rospy.Publisher('/cmd_vel', Twist, queue_size = 10)    
     r = rospy.Rate(5) # 5Hz
@@ -67,7 +76,7 @@ if __name__ == "__main__":
         # Verifica se chegou ao alvo
         distance = math.sqrt((x - target_x)** 2 + (y - target_y)** 2)
 
-        if (distance > min_distance):
+        if (distance > offset_dist):
             obstacle_avoidance()  # Chamada para a função de desvio de obstáculos
         else:
             velocity.linear.x = 0.0
